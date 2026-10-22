@@ -67,12 +67,12 @@ async def index():
             return HTMLResponse(content=f.read())
     return HTMLResponse("<h1>Monitor Financeiro Ativo</h1>")
 
-@app.get("/api/status")
+@app.api_route("/status", methods=["GET"])
+@app.api_route("/api/status", methods=["GET"])
 async def get_status():
     cache = carregar_cache()
     if cache:
         return cache
-    # Se não houver cache gerado, executa a checagem
     resultados = await checker.check_all()
     salvar_cache(resultados)
     return {
@@ -80,7 +80,8 @@ async def get_status():
         "items": resultados
     }
 
-@app.post("/api/check")
+@app.api_route("/check", methods=["GET", "POST"])
+@app.api_route("/api/check", methods=["GET", "POST"])
 async def check_all_manual():
     resultados = await checker.check_all()
     salvar_cache(resultados)
@@ -89,6 +90,7 @@ async def check_all_manual():
         "items": resultados
     }
 
+@app.api_route("/cron", methods=["GET", "POST"])
 @app.api_route("/api/cron", methods=["GET", "POST"])
 async def cron_worker():
     """
