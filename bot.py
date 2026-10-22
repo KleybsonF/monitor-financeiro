@@ -1,8 +1,11 @@
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import asyncio
 import logging
+
+# Fuso Horário Oficial de Brasília (UTC-3)
+FUSO_BRASILIA = timezone(timedelta(hours=-3))
 
 # Garante suporte a UTF-8 no terminal Windows
 if sys.platform == "win32":
@@ -190,14 +193,14 @@ async def slash_instabilidades(interaction: discord.Interaction):
     resultados = await checker.check_all()
     com_problema = [r for r in resultados if r["is_instavel"]]
     
-    agora_str = datetime.now().strftime("%d/%m/%Y às %H:%M:%S")
+    agora_str = datetime.now(FUSO_BRASILIA).strftime("%d/%m/%Y às %H:%M:%S")
 
     if not com_problema:
         embed = discord.Embed(
             title="✅ Tudo Operacional!",
             description="Nenhuma instituição monitorada está com instabilidade detectada no momento.",
             color=discord.Color.green(),
-            timestamp=datetime.now()
+            timestamp=datetime.now(FUSO_BRASILIA)
         )
         embed.set_footer(text=f"Checagem realizada em {agora_str}")
         await interaction.followup.send(embed=embed)
@@ -207,7 +210,7 @@ async def slash_instabilidades(interaction: discord.Interaction):
         title=f"⚠️ {len(com_problema)} Instituição(ões) com Instabilidade",
         description=f"Status verificado em `{agora_str}`:",
         color=discord.Color.gold(),
-        timestamp=datetime.now()
+        timestamp=datetime.now(FUSO_BRASILIA)
     )
 
     for item in com_problema[:25]:  # Discord limita campos a 25 por embed

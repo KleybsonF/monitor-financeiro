@@ -2,8 +2,10 @@ import os
 import sys
 import json
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from fastapi import FastAPI
+
+FUSO_BRASILIA = timezone(timedelta(hours=-3))
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.append(str(BASE_DIR))
@@ -19,7 +21,7 @@ def salvar_cache(resultados):
     try:
         with open(CACHE_FILE, "w", encoding="utf-8") as f:
             json.dump({
-                "timestamp": datetime.now().strftime("%d/%m/%Y às %H:%M:%S"),
+                "timestamp": datetime.now(FUSO_BRASILIA).strftime("%d/%m/%Y às %H:%M:%S"),
                 "items": resultados
             }, f)
     except Exception:
@@ -32,6 +34,6 @@ async def check_now():
     resultados = await checker.check_all()
     salvar_cache(resultados)
     return {
-        "timestamp": datetime.now().strftime("%d/%m/%Y às %H:%M:%S"),
+        "timestamp": datetime.now(FUSO_BRASILIA).strftime("%d/%m/%Y às %H:%M:%S"),
         "items": resultados
     }

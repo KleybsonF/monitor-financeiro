@@ -1,11 +1,14 @@
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import json
 import logging
 from bs4 import BeautifulSoup
 from curl_cffi.requests import AsyncSession
 
 logger = logging.getLogger(__name__)
+
+# Fuso Horário Oficial de Brasília (UTC-3)
+FUSO_BRASILIA = timezone(timedelta(hours=-3))
 
 class BankStatusChecker:
     def __init__(self, banks_file: str = "banks.json"):
@@ -222,7 +225,7 @@ class BankStatusChecker:
             "is_instavel": res["is_instavel"],
             "mensagem": res["mensagem"],
             "metodo": res.get("metodo", "Teste de Conectividade"),
-            "timestamp": datetime.now().strftime("%d/%m/%Y às %H:%M:%S")
+            "timestamp": datetime.now(FUSO_BRASILIA).strftime("%d/%m/%Y às %H:%M:%S")
         }
 
     async def check_all(self):

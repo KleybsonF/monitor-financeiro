@@ -1,11 +1,14 @@
 import os
 import sys
 import json
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from fastapi import FastAPI, BackgroundTasks
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+
+# Fuso Horário Oficial de Brasília (UTC-3)
+FUSO_BRASILIA = timezone(timedelta(hours=-3))
 
 # Adiciona diretório raiz ao path
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -44,7 +47,7 @@ def salvar_cache(resultados):
     try:
         with open(CACHE_FILE, "w", encoding="utf-8") as f:
             json.dump({
-                "timestamp": datetime.now().strftime("%d/%m/%Y às %H:%M:%S"),
+                "timestamp": datetime.now(FUSO_BRASILIA).strftime("%d/%m/%Y às %H:%M:%S"),
                 "items": resultados
             }, f)
     except Exception:
@@ -76,7 +79,7 @@ async def get_status():
     resultados = await checker.check_all()
     salvar_cache(resultados)
     return {
-        "timestamp": datetime.now().strftime("%d/%m/%Y às %H:%M:%S"),
+        "timestamp": datetime.now(FUSO_BRASILIA).strftime("%d/%m/%Y às %H:%M:%S"),
         "items": resultados
     }
 
@@ -86,7 +89,7 @@ async def check_all_manual():
     resultados = await checker.check_all()
     salvar_cache(resultados)
     return {
-        "timestamp": datetime.now().strftime("%d/%m/%Y às %H:%M:%S"),
+        "timestamp": datetime.now(FUSO_BRASILIA).strftime("%d/%m/%Y às %H:%M:%S"),
         "items": resultados
     }
 
@@ -125,7 +128,7 @@ async def cron_worker():
 
     return {
         "status": "ok",
-        "timestamp": datetime.now().strftime("%d/%m/%Y às %H:%M:%S"),
+        "timestamp": datetime.now(FUSO_BRASILIA).strftime("%d/%m/%Y às %H:%M:%S"),
         "total_verificados": len(resultados),
         "alertas_disparados": alertas_disparados
     }

@@ -2,9 +2,11 @@ import os
 import sys
 import json
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+
+FUSO_BRASILIA = timezone(timedelta(hours=-3))
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.append(str(BASE_DIR))
@@ -61,7 +63,7 @@ async def run_cron():
 
     return {
         "status": "ok",
-        "timestamp": datetime.now().strftime("%d/%m/%Y às %H:%M:%S"),
+        "timestamp": datetime.now(FUSO_BRASILIA).strftime("%d/%m/%Y às %H:%M:%S"),
         "total_verificados": len(resultados),
         "alertas_disparados": alertas_disparados
     }
