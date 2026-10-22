@@ -226,7 +226,8 @@ class BankStatusChecker:
         }
 
     async def check_all(self):
-        semaphore = asyncio.Semaphore(10)
+        # Concorrência otimizada para execução ultrarrápida em Serverless
+        semaphore = asyncio.Semaphore(25)
 
         async with AsyncSession(impersonate="chrome120") as session:
             async def sem_check(bank):
