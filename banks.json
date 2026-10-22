@@ -1,0 +1,398 @@
+[
+  {
+    "id": "banco-do-brasil",
+    "name": "Banco do Brasil",
+    "category": "Banco Tradicional",
+    "type": "downdetector",
+    "target": "bancodobrasil",
+    "fallback_url": "https://autoatendimento.bb.com.br"
+  },
+  {
+    "id": "caixa",
+    "name": "Caixa Econômica Federal",
+    "category": "Banco Tradicional",
+    "type": "downdetector",
+    "target": "caixa-economica-federal",
+    "fallback_url": "https://www.caixa.gov.br"
+  },
+  {
+    "id": "bradesco",
+    "name": "Bradesco",
+    "category": "Banco Tradicional",
+    "type": "downdetector",
+    "target": "bradesco",
+    "fallback_url": "https://banco.bradesco"
+  },
+  {
+    "id": "itau",
+    "name": "Itaú",
+    "category": "Banco Tradicional",
+    "type": "downdetector",
+    "target": "itau",
+    "fallback_url": "https://www.itau.com.br"
+  },
+  {
+    "id": "santander",
+    "name": "Santander",
+    "category": "Banco Tradicional",
+    "type": "downdetector",
+    "target": "santander",
+    "fallback_url": "https://www.santander.com.br"
+  },
+  {
+    "id": "banco-inter",
+    "name": "Banco Inter",
+    "category": "Banco Digital",
+    "type": "downdetector",
+    "target": "banco-inter",
+    "fallback_url": "https://inter.co"
+  },
+  {
+    "id": "c6-bank",
+    "name": "C6 Bank",
+    "category": "Banco Digital",
+    "type": "downdetector",
+    "target": "c6-bank",
+    "fallback_url": "https://www.c6bank.com.br"
+  },
+  {
+    "id": "sicredi",
+    "name": "Sicredi",
+    "category": "Cooperativa",
+    "type": "downdetector",
+    "target": "sicredi",
+    "fallback_url": "https://www.sicredi.com.br"
+  },
+  {
+    "id": "sicoob",
+    "name": "Sicoob",
+    "category": "Cooperativa",
+    "type": "downdetector",
+    "target": "sicoob",
+    "fallback_url": "https://www.sicoob.com.br"
+  },
+  {
+    "id": "banrisul",
+    "name": "Banrisul",
+    "category": "Banco Estadual",
+    "type": "downdetector",
+    "target": "banrisul",
+    "fallback_url": "https://www.banrisul.com.br"
+  },
+  {
+    "id": "btg-pactual",
+    "name": "BTG Pactual",
+    "category": "Banco de Investimento",
+    "type": "downdetector",
+    "target": "btg-pactual",
+    "fallback_url": "https://www.btgpactual.com"
+  },
+  {
+    "id": "safra",
+    "name": "Safra",
+    "category": "Banco Privado",
+    "type": "downdetector",
+    "target": "banco-safra",
+    "fallback_url": "https://www.safra.com.br"
+  },
+  {
+    "id": "cora",
+    "name": "Cora",
+    "category": "Fintech / PJ",
+    "type": "http",
+    "target": "https://www.cora.com.br"
+  },
+  {
+    "id": "asaas",
+    "name": "Asaas",
+    "category": "Gateway / BaaS",
+    "type": "statuspage",
+    "target": "https://status.asaas.com/api/v2/summary.json"
+  },
+  {
+    "id": "iugu",
+    "name": "Iugu",
+    "category": "Gateway / BaaS",
+    "type": "statuspage",
+    "target": "https://status.iugu.com/api/v2/summary.json"
+  },
+  {
+    "id": "pagar-me",
+    "name": "Pagar.me",
+    "category": "Gateway / Adquirente",
+    "type": "statuspage",
+    "target": "https://status.pagar.me/api/v2/summary.json"
+  },
+  {
+    "id": "woovi",
+    "name": "Woovi (OpenPix)",
+    "category": "Pix / Gateway",
+    "type": "http",
+    "target": "https://woovi.com"
+  },
+  {
+    "id": "mercado-pago",
+    "name": "Mercado Pago",
+    "category": "Fintech / Pagamentos",
+    "type": "statuspage",
+    "target": "https://status.mercadopago.com/api/v2/summary.json"
+  },
+  {
+    "id": "pagseguro",
+    "name": "PagBank (PagSeguro)",
+    "category": "Fintech / Adquirente",
+    "type": "downdetector",
+    "target": "pagseguro",
+    "fallback_url": "https://pagseguro.uol.com.br"
+  },
+  {
+    "id": "paypal",
+    "name": "PayPal",
+    "category": "Pagamentos",
+    "type": "downdetector",
+    "target": "paypal",
+    "fallback_url": "https://www.paypal.com"
+  },
+  {
+    "id": "cielo",
+    "name": "Cielo",
+    "category": "Adquirente",
+    "type": "downdetector",
+    "target": "cielo",
+    "fallback_url": "https://www.cielo.com.br"
+  },
+  {
+    "id": "infinitepay",
+    "name": "InfinitePay (CloudWalk)",
+    "category": "Adquirente / Fintech",
+    "type": "http",
+    "target": "https://www.infinitepay.io"
+  },
+  {
+    "id": "safe2pay",
+    "name": "Safe2Pay",
+    "category": "Gateway",
+    "type": "http",
+    "target": "https://safe2pay.com.br"
+  },
+  {
+    "id": "efi",
+    "name": "Efí (Gerencianet)",
+    "category": "BaaS / Gateway",
+    "type": "statuspage",
+    "target": "https://status.sejaefi.com.br/api/v2/summary.json"
+  },
+  {
+    "id": "getnet",
+    "name": "Getnet",
+    "category": "Adquirente",
+    "type": "downdetector",
+    "target": "getnet",
+    "fallback_url": "https://www.getnet.com.br"
+  },
+  {
+    "id": "zoop",
+    "name": "Zoop",
+    "category": "BaaS / Pagamentos",
+    "type": "statuspage",
+    "target": "https://status.zoop.com.br/api/v2/summary.json"
+  },
+  {
+    "id": "cellcoin",
+    "name": "Celcoin",
+    "category": "BaaS / Infra",
+    "type": "statuspage",
+    "target": "https://celcoin.statuspage.io/api/v2/summary.json"
+  },
+  {
+    "id": "paghiper",
+    "name": "PagHiper",
+    "category": "Boletos / Pix",
+    "type": "http",
+    "target": "https://www.paghiper.com"
+  },
+  {
+    "id": "widepay",
+    "name": "Wide Pay",
+    "category": "Gateway",
+    "type": "http",
+    "target": "https://www.widepay.com"
+  },
+  {
+    "id": "pjbank",
+    "name": "PJBank",
+    "category": "BaaS / PJ",
+    "type": "http",
+    "target": "https://pjbank.com.br"
+  },
+  {
+    "id": "brb",
+    "name": "BRB (Banco de Brasília)",
+    "category": "Banco",
+    "type": "downdetector",
+    "target": "banco-de-brasilia",
+    "fallback_url": "https://novo.brb.com.br"
+  },
+  {
+    "id": "cresol",
+    "name": "Cresol",
+    "category": "Cooperativa",
+    "type": "http",
+    "target": "https://cresol.com.br"
+  },
+  {
+    "id": "banese",
+    "name": "Banese",
+    "category": "Banco Estadual",
+    "type": "http",
+    "target": "https://www.banese.com.br"
+  },
+  {
+    "id": "banestes",
+    "name": "Banestes",
+    "category": "Banco Estadual",
+    "type": "http",
+    "target": "https://www.banestes.com.br"
+  },
+  {
+    "id": "unicred",
+    "name": "Unicred",
+    "category": "Cooperativa",
+    "type": "http",
+    "target": "https://www.unicred.com.br"
+  },
+  {
+    "id": "ailos",
+    "name": "Ailos",
+    "category": "Cooperativa",
+    "type": "http",
+    "target": "https://www.ailos.coop.br"
+  },
+  {
+    "id": "galaxpay",
+    "name": "Galax Pay",
+    "category": "Cobrança / Gateway",
+    "type": "http",
+    "target": "https://galaxpay.com.br"
+  },
+  {
+    "id": "banco-do-nordeste",
+    "name": "Banco do Nordeste (BNB)",
+    "category": "Banco",
+    "type": "http",
+    "target": "https://www.bnb.gov.br"
+  },
+  {
+    "id": "bs2",
+    "name": "Banco BS2",
+    "category": "Banco Digital / PJ",
+    "type": "downdetector",
+    "target": "banco-bs2",
+    "fallback_url": "https://www.bancobs2.com.br"
+  },
+  {
+    "id": "cobre-facil",
+    "name": "Cobre Fácil",
+    "category": "Gestão / Cobrança",
+    "type": "http",
+    "target": "https://www.cobrefacil.com.br"
+  },
+  {
+    "id": "lytex",
+    "name": "LyTex",
+    "category": "Cobrança / Pagamentos",
+    "type": "http",
+    "target": "https://lytex.com.br"
+  },
+  {
+    "id": "f2b",
+    "name": "F2B",
+    "category": "Cobrança",
+    "type": "http",
+    "target": "https://www.f2b.com.br"
+  },
+  {
+    "id": "brasil-cash",
+    "name": "Brasil Cash",
+    "category": "Pagamentos",
+    "type": "http",
+    "target": "https://brasilcash.com.br"
+  },
+  {
+    "id": "we-payments",
+    "name": "WE Payments",
+    "category": "Cross-border / Gateway",
+    "type": "http",
+    "target": "https://wepayments.com.br"
+  },
+  {
+    "id": "negociarie",
+    "name": "Negociarie",
+    "category": "Pagamentos",
+    "type": "http",
+    "target": "https://negociarie.com.br"
+  },
+  {
+    "id": "mknextpay",
+    "name": "MknextPay",
+    "category": "Pagamentos / ISP",
+    "type": "http",
+    "target": "https://mknext.com.br"
+  },
+  {
+    "id": "cache-bank",
+    "name": "Cachê Bank",
+    "category": "BaaS",
+    "type": "http",
+    "target": "https://cachebank.com.br"
+  },
+  {
+    "id": "grab-go-bank",
+    "name": "Grab&Go Bank",
+    "category": "BaaS / Varejo",
+    "type": "http",
+    "target": "https://grabgo.tech"
+  },
+  {
+    "id": "rami-capital",
+    "name": "Rami Capital",
+    "category": "Securitizadora / Crédito",
+    "type": "http",
+    "target": "https://ramicapital.com.br"
+  },
+  {
+    "id": "banco-boreal",
+    "name": "Banco Boreal",
+    "category": "Câmbio / Crédito",
+    "type": "http",
+    "target": "https://borealfinancas.com.br"
+  },
+  {
+    "id": "bdm-digital",
+    "name": "BDM Digital",
+    "category": "Cripto / Pagamentos",
+    "type": "http",
+    "target": "https://bdmdigital.com.br"
+  },
+  {
+    "id": "modobank",
+    "name": "Modobank",
+    "category": "Fintech",
+    "type": "http",
+    "target": "https://modobank.com.br"
+  },
+  {
+    "id": "easypag",
+    "name": "EasyPag",
+    "category": "Gateway / Split",
+    "type": "http",
+    "target": "https://easypag.com.br"
+  },
+  {
+    "id": "pulsarpay",
+    "name": "PulsarPay",
+    "category": "Gateway",
+    "type": "http",
+    "target": "https://pulsarpay.com"
+  }
+]

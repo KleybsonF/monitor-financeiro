@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Status Financeiro - Monitor 24/7</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              500: '#22c55e',
+              600: '#16a34a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .glass { background: rgba(23, 23, 23, 0.7); backdrop-filter: blur(12px); }
+  </style>
+</head>
+<body class="bg-neutral-950 text-neutral-100 min-h-screen antialiased selection:bg-emerald-500 selection:text-white">
+
+  <!-- Navbar -->
+  <header class="border-b border-neutral-800/80 glass sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+          <svg class="w-5 h-5 text-neutral-950 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-base font-bold tracking-tight">Monitor Financeiro</h1>
+          <p class="text-xs text-neutral-400">Status de Bancos e Gateways em Tempo Real</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-3">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          Sistema Ativo 24/7
+        </span>
+        <button id="btnRefresh" onclick="carregarStatus(true)" class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-neutral-800 hover:bg-neutral-700 text-white transition-all border border-neutral-700 active:scale-95 shadow-sm">
+          <svg id="refreshIcon" class="w-3.5 h-3.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          <span id="refreshText">Atualizar</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+    <!-- KPI Metrics -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="p-5 rounded-2xl bg-neutral-900/60 border border-neutral-800/80">
+        <p class="text-xs font-medium text-neutral-400">Total Monitorado</p>
+        <p id="kpiTotal" class="text-2xl font-bold mt-1 text-white">--</p>
+      </div>
+      <div class="p-5 rounded-2xl bg-neutral-900/60 border border-neutral-800/80">
+        <p class="text-xs font-medium text-neutral-400">Operacionais</p>
+        <p id="kpiOperacionais" class="text-2xl font-bold mt-1 text-emerald-400">--</p>
+      </div>
+      <div class="p-5 rounded-2xl bg-neutral-900/60 border border-neutral-800/80">
+        <p class="text-xs font-medium text-neutral-400">Instabilidade / Queda</p>
+        <p id="kpiInstaveis" class="text-2xl font-bold mt-1 text-amber-400">--</p>
+      </div>
+      <div class="p-5 rounded-2xl bg-neutral-900/60 border border-neutral-800/80">
+        <p class="text-xs font-medium text-neutral-400">Última Varredura</p>
+        <p id="kpiUltima" class="text-sm font-semibold mt-2 text-neutral-300 truncate">Aguardando...</p>
+      </div>
+    </div>
+
+    <!-- Filters & Search -->
+    <div class="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
+      <div class="relative flex-1 max-w-md">
+        <svg class="w-4 h-4 text-neutral-500 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <input 
+          id="searchInput" 
+          type="text" 
+          placeholder="Buscar banco, gateway ou cooperativa..." 
+          oninput="filtrarCards()"
+          class="w-full bg-neutral-900/80 border border-neutral-800 rounded-xl pl-10 pr-4 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+        />
+      </div>
+
+      <!-- Filter Chips -->
+      <div class="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+        <button onclick="setFiltro('todos')" class="filtro-btn px-3 py-1.5 rounded-lg bg-neutral-800 text-white font-medium border border-neutral-700 active:scale-95 transition-all" data-filtro="todos">Todos</button>
+        <button onclick="setFiltro('principais')" class="filtro-btn px-3 py-1.5 rounded-lg bg-neutral-900 text-neutral-400 font-medium border border-neutral-800 hover:text-white transition-all" data-filtro="principais">Principais (22)</button>
+        <button onclick="setFiltro('instaveis')" class="filtro-btn px-3 py-1.5 rounded-lg bg-neutral-900 text-neutral-400 font-medium border border-neutral-800 hover:text-white transition-all" data-filtro="instaveis">Com Instabilidade</button>
+        <button onclick="setFiltro('bancos')" class="filtro-btn px-3 py-1.5 rounded-lg bg-neutral-900 text-neutral-400 font-medium border border-neutral-800 hover:text-white transition-all" data-filtro="bancos">Bancos</button>
+        <button onclick="setFiltro('gateways')" class="filtro-btn px-3 py-1.5 rounded-lg bg-neutral-900 text-neutral-400 font-medium border border-neutral-800 hover:text-white transition-all" data-filtro="gateways">Gateways / BaaS</button>
+      </div>
+    </div>
+
+    <!-- Cards Grid -->
+    <div id="cardsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <!-- Loading Skeleton -->
+      <div class="col-span-full py-16 text-center">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-emerald-500 border-t-transparent mb-4"></div>
+        <p class="text-sm text-neutral-400">Consultando status das instituições...</p>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    const BANCOS_PRINCIPAIS = [
+      "banco-do-brasil", "caixa", "bradesco", "itau", "santander", "sicredi", "sicoob",
+      "banco-inter", "btg-pactual", "asaas", "widepay", "cora", "cellcoin", "iugu",
+      "efi", "rami-capital", "c6-bank", "mercado-pago", "lytex", "negociarie",
+      "modobank", "cielo"
+    ];
+
+    let todosBancos = [];
+    let filtroAtual = "todos";
+
+    async function carregarStatus(forcarCheck = false) {
+      const btn = document.getElementById("btnRefresh");
+      const icon = document.getElementById("refreshIcon");
+      const text = document.getElementById("refreshText");
+
+      icon.classList.add("animate-spin");
+      text.innerText = "Checando...";
+      btn.disabled = true;
+
+      try {
+        const url = forcarCheck ? "/api/check" : "/api/status";
+        const res = await fetch(url, { method: forcarCheck ? "POST" : "GET" });
+        const data = await res.json();
+        todosBancos = data.items || [];
+
+        // Atualiza KPIs
+        document.getElementById("kpiTotal").innerText = todosBancos.length;
+        document.getElementById("kpiOperacionais").innerText = todosBancos.filter(b => b.status === "normal").length;
+        document.getElementById("kpiInstaveis").innerText = todosBancos.filter(b => b.status !== "normal").length;
+        document.getElementById("kpiUltima").innerText = data.timestamp || new Date().toLocaleTimeString('pt-BR');
+
+        filtrarCards();
+      } catch (e) {
+        console.error("Erro ao carregar dados:", e);
+      } finally {
+        icon.classList.remove("animate-spin");
+        text.innerText = "Atualizar";
+        btn.disabled = false;
+      }
+    }
+
+    function setFiltro(tipo) {
+      filtroAtual = tipo;
+      document.querySelectorAll(".filtro-btn").forEach(btn => {
+        if (btn.dataset.filtro === tipo) {
+          btn.className = "filtro-btn px-3 py-1.5 rounded-lg bg-neutral-800 text-white font-medium border border-neutral-700 active:scale-95 transition-all";
+        } else {
+          btn.className = "filtro-btn px-3 py-1.5 rounded-lg bg-neutral-900 text-neutral-400 font-medium border border-neutral-800 hover:text-white transition-all";
+        }
+      });
+      filtrarCards();
+    }
+
+    function filtrarCards() {
+      const termo = document.getElementById("searchInput").value.toLowerCase().trim();
+      const container = document.getElementById("cardsGrid");
+
+      const filtrados = todosBancos.filter(b => {
+        const matchesTermo = b.name.toLowerCase().includes(termo) || b.category.toLowerCase().includes(termo);
+        if (!matchesTermo) return false;
+
+        if (filtroAtual === "principais") return BANCOS_PRINCIPAIS.includes(b.id);
+        if (filtroAtual === "instaveis") return b.status !== "normal";
+        if (filtroAtual === "bancos") return b.category.toLowerCase().includes("banco") || b.category.toLowerCase().includes("cooperativa");
+        if (filtroAtual === "gateways") return b.category.toLowerCase().includes("gateway") || b.category.toLowerCase().includes("baas");
+        return true;
+      });
+
+      if (filtrados.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full py-16 text-center text-neutral-500">
+            <p class="text-sm">Nenhuma instituição encontrada para este filtro.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtrados.map(b => {
+        const isOffline = b.status === "offline";
+        const isInstavel = b.status === "instavel";
+        const isNormal = b.status === "normal";
+
+        const badgeClass = isNormal 
+          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+          : (isOffline ? "bg-rose-500/10 text-rose-400 border-rose-500/20" : "bg-amber-500/10 text-amber-400 border-amber-500/20");
+
+        const statusLabel = isNormal ? "OPERACIONAL" : (isOffline ? "OFFLINE" : "INSTÁVEL");
+        const dotColor = isNormal ? "bg-emerald-400" : (isOffline ? "bg-rose-400" : "bg-amber-400");
+        const cardBorder = isNormal ? "border-neutral-800/80 hover:border-neutral-700" : (isOffline ? "border-rose-500/40 bg-rose-950/10" : "border-amber-500/40 bg-amber-950/10");
+
+        return `
+          <div class="p-5 rounded-2xl bg-neutral-900/60 border ${cardBorder} transition-all duration-200 flex flex-col justify-between">
+            <div>
+              <div class="flex items-start justify-between gap-3 mb-3">
+                <div>
+                  <h3 class="font-semibold text-sm text-white">${b.name}</h3>
+                  <span class="text-xs text-neutral-500">${b.category}</span>
+                </div>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${badgeClass}">
+                  <span class="w-1.5 h-1.5 rounded-full ${dotColor}"></span>
+                  ${statusLabel}
+                </span>
+              </div>
+
+              <div class="p-3 rounded-xl bg-neutral-950/60 border border-neutral-800/60 text-xs space-y-1 mb-4">
+                <p class="text-neutral-400 font-medium">📋 Diagnóstico:</p>
+                <p class="text-neutral-200 line-clamp-2">${b.mensagem}</p>
+              </div>
+            </div>
+
+            <div class="pt-3 border-t border-neutral-800/60 flex items-center justify-between text-[11px] text-neutral-500">
+              <span title="${b.metodo}" class="truncate max-w-[180px]">${b.metodo}</span>
+              <span>${b.timestamp.split(' às ')[1] || b.timestamp}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Carregamento inicial ao abrir a página
+    carregarStatus(false);
+
+    // Auto-refresh da interface a cada 60 segundos
+    setInterval(() => carregarStatus(false), 60000);
+  </script>
+</body>
+</html>
