@@ -245,7 +245,7 @@
     "name": "Banese",
     "category": "Banco Estadual",
     "type": "http",
-    "target": "https://www.banese.com.br"
+    "target": "https://www.banesecard.com.br"
   },
   {
     "id": "banestes",
@@ -379,7 +379,7 @@
     "name": "Modobank",
     "category": "Fintech",
     "type": "http",
-    "target": "https://modobank.com.br"
+    "target": "https://modopay.com.br"
   },
   {
     "id": "easypag",
