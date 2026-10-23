@@ -41,6 +41,26 @@ class BankStatusChecker:
                     first = unresolved[0]
                     incident_msg = f"{first.get('name', '')} ({first.get('status', '')})"
 
+                # Filtro específico para a Celcoin: ignorar falhas exclusivas de DETRAN e débitos veiculares
+                if "celcoin" in target_url:
+                    falhas_reais = [
+                        c for c in data.get("components", [])
+                        if c.get("status") not in ["operational", "none", None]
+                        and not any(p in c.get("name", "").lower() for p in ["detran", "veicular", "veiculo", "veículo", "ipva"])
+                    ]
+                    falhas_criticas = [
+                        c for c in falhas_reais
+                        if c.get("status") in ["major_outage", "critical"]
+                    ]
+                    # Se não houver falhas críticas fora do DETRAN, considera operacional
+                    if not falhas_criticas:
+                        return {
+                            "status": "normal",
+                            "is_instavel": False,
+                            "mensagem": "Sistemas principais operacionais (Pix, Boletos e Contas ativos)",
+                            "metodo": "API Oficial de Status (Statuspage)"
+                        }
+
                 # Identifica exatamente quais componentes/módulos estão fora do ar
                 affected_components = [
                     c['name'] for c in data.get("components", [])
