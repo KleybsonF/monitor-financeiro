@@ -225,11 +225,25 @@ async def slash_instabilidades(interaction: discord.Interaction):
 
 @bot.tree.command(name="bancos", description="Exibe a lista de todos os bancos e serviços monitorados")
 async def slash_bancos(interaction: discord.Interaction):
-    # Agrupa bancos por categoria
-    categorias = {}
+    await interaction.response.defer()
+
+    macro = {
+        "🏦 Bancos Tradicionais e Estaduais": [],
+        "📱 Bancos Digitais": [],
+        "🤝 Cooperativas de Crédito": [],
+        "⚡ Gateways, BaaS e Pagamentos": []
+    }
+
     for b in checker.banks:
-        cat = b.get("category", "Geral")
-        categorias.setdefault(cat, []).append(b["name"])
+        c = b.get("category", "").lower()
+        if "digital" in c and "banco" in c:
+            macro["📱 Bancos Digitais"].append(b["name"])
+        elif "cooperativa" in c:
+            macro["🤝 Cooperativas de Crédito"].append(b["name"])
+        elif "banco" in c:
+            macro["🏦 Bancos Tradicionais e Estaduais"].append(b["name"])
+        else:
+            macro["⚡ Gateways, BaaS e Pagamentos"].append(b["name"])
 
     embed = discord.Embed(
         title=f"🏦 Instituições Monitoradas ({len(checker.banks)})",
@@ -237,15 +251,19 @@ async def slash_bancos(interaction: discord.Interaction):
         color=discord.Color.blue()
     )
 
-    for cat, lista in categorias.items():
-        embed.add_field(
-            name=f"📌 {cat} ({len(lista)})",
-            value=", ".join(lista[:15]) + ("..." if len(lista) > 15 else ""),
-            inline=False
-        )
+    for cat_nome, lista in macro.items():
+        if lista:
+            texto = ", ".join(lista)
+            if len(texto) > 1020:
+                texto = texto[:1015] + "..."
+            embed.add_field(
+                name=f"{cat_nome} ({len(lista)})",
+                value=texto,
+                inline=False
+            )
 
     embed.set_footer(text="Bot Financeiro • Use /status <nome> para verificar")
-    await interaction.response.send_message(embed=embed)
+    await interaction.followup.send(embed=embed)
 
 # Comandos prefixados de fallback (ex: !status itau)
 @bot.command(name="status")
@@ -272,7 +290,7 @@ async def cmd_instabilidades(ctx):
     resultados = await checker.check_all()
     com_problema = [r for r in resultados if r["is_instavel"]]
     
-    agora_str = datetime.now().strftime("%d/%m/%Y às %H:%M:%S")
+    agora_str = datetime.now(FUSO_BRASILIA).strftime("%d/%m/%Y às %H:%M:%S")
 
     if not com_problema:
         embed = discord.Embed(
