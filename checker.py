@@ -2,7 +2,9 @@ import asyncio
 from datetime import datetime, timezone, timedelta
 import json
 import logging
+from pathlib import Path
 import re
+import time
 from bs4 import BeautifulSoup
 from curl_cffi.requests import AsyncSession
 
@@ -10,6 +12,9 @@ logger = logging.getLogger(__name__)
 
 # Fuso Horário Oficial de Brasília (UTC-3)
 FUSO_BRASILIA = timezone(timedelta(hours=-3))
+
+# Cache persistente em disco para evitar rate-limit (HTTP 429) do Downdetector
+DD_DISK_CACHE_FILE = Path("/tmp/downdetector_feed_cache.json") if Path("/tmp").exists() else Path("downdetector_feed_cache.json")
 
 BROWSER_HEADERS = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
@@ -131,10 +136,20 @@ class BankStatusChecker:
             self._dd_lock = asyncio.Lock()
 
         async with self._dd_lock:
-            now = asyncio.get_event_loop().time()
-            if hasattr(self, "_dd_feed_cache") and (now - getattr(self, "_dd_feed_time", 0)) < 120:
-                return self._dd_feed_cache
+            now_ts = time.time()
 
+            # 1. Verifica se já temos cache persistente em disco com menos de 240 segundos (4 min)
+            if DD_DISK_CACHE_FILE.exists():
+                try:
+                    with open(DD_DISK_CACHE_FILE, "r", encoding="utf-8") as f:
+                        cached_data = json.load(f)
+                    cache_age = now_ts - cached_data.get("time", 0)
+                    if cache_age < 240 and cached_data.get("feed"):
+                        return cached_data["feed"]
+                except Exception:
+                    pass
+
+            # 2. Faz uma nova consulta ao Downdetector
             try:
                 resp = await session.get("https://downdetector.com.br", headers=BROWSER_HEADERS, timeout=10)
                 if resp.status_code == 200:
@@ -151,17 +166,28 @@ class BankStatusChecker:
                             "latest_reports": latest,
                         }
                     if feed:
-                        self._dd_feed_cache = feed
-                        self._dd_feed_time = now
+                        try:
+                            with open(DD_DISK_CACHE_FILE, "w", encoding="utf-8") as f:
+                                json.dump({"time": now_ts, "feed": feed}, f)
+                        except Exception:
+                            pass
                         return feed
+                elif resp.status_code == 429:
+                    logger.warning("Downdetector retornou HTTP 429 (Rate Limit). Utilizando cache persistente anterior.")
             except Exception as e:
                 logger.warning(f"Erro ao buscar feed do Downdetector: {e}")
 
-            # Se falhou nesta tentativa mas temos cache anterior com menos de 10 min, preserva para evitar falso positivo de normalização
-            if hasattr(self, "_dd_feed_cache") and (now - getattr(self, "_dd_feed_time", 0)) < 600:
-                return self._dd_feed_cache
+            # 3. Fallback de resiliência: se o Downdetector bloqueou (429) ou falhou, recupera o último cache de até 20 minutos
+            if DD_DISK_CACHE_FILE.exists():
+                try:
+                    with open(DD_DISK_CACHE_FILE, "r", encoding="utf-8") as f:
+                        cached_data = json.load(f)
+                    if (now_ts - cached_data.get("time", 0)) < 1200:
+                        return cached_data.get("feed", {})
+                except Exception:
+                    pass
 
-            return getattr(self, "_dd_feed_cache", {})
+            return {}
 
     async def check_downdetector_or_site(self, session: AsyncSession, slug: str, fallback_url: str = None):
         # 1. Checa feed em tempo real da página principal do Downdetector
@@ -176,6 +202,7 @@ class BankStatusChecker:
                 return {
                     "status": "instavel" if status_dd != "danger" else "offline",
                     "is_instavel": True,
+                    "confiavel": True,
                     "mensagem": f"Pico de reclamações no Downdetector ({reports} queixas recentes - Alerta {status_dd.upper()})",
                     "metodo": "Downdetector (Relatos de Usuários)"
                 }
@@ -188,40 +215,35 @@ class BankStatusChecker:
                 return {
                     "status": "normal",
                     "is_instavel": False,
+                    "confiavel": True,
                     "mensagem": f"Operação normal segundo relatos ({reports} queixas recentes no padrão)",
                     "metodo": "Downdetector (Relatos de Usuários)"
                 }
 
-        # 2. Se a instituição não estiver no feed principal, consulta a página individual
-        dd_url = f"https://downdetector.com.br/fora-do-ar/{slug}/"
-        try:
-            resp = await session.get(dd_url, headers=BROWSER_HEADERS, timeout=8)
-            if resp.status_code == 200:
-                soup = BeautifulSoup(resp.text, "html.parser")
-                banner = soup.find(id="company-status") or soup.find("div", class_="company-status")
-                text_content = banner.get_text(separator=" ", strip=True).lower() if banner else ""
+        # Se o feed veio vazio (ex: 429 ou falha de rede), marca confiavel=False para evitar normalização falsa
+        if not feed:
+            if fallback_url:
+                res_http = await self.check_http(session, fallback_url)
+                res_http["confiavel"] = False
+                return res_http
+            return {
+                "status": "desconhecido",
+                "is_instavel": False,
+                "confiavel": False,
+                "mensagem": "Downdetector temporariamente inacessível",
+                "metodo": "Downdetector (Relatos de Usuários)"
+            }
 
-                if any(w in text_content for w in ["problemas", "fora do ar", "interrupção", "falha"]):
-                    if "não indicam problemas" in text_content or "sem problemas" in text_content:
-                        pass
-                    else:
-                        return {
-                            "status": "instavel",
-                            "is_instavel": True,
-                            "mensagem": "Possíveis problemas reportados por usuários no Downdetector",
-                            "metodo": "Downdetector (Relatos de Usuários)"
-                        }
-        except Exception:
-            pass
-
-        # 3. Fallback de conectividade direta caso não haja alerta no Downdetector
+        # 2. Se o feed principal carregou com sucesso e a instituição não consta nele, não há queixas ativas
         if fallback_url:
             res_http = await self.check_http(session, fallback_url)
+            res_http["confiavel"] = True
             return res_http
 
         return {
             "status": "normal",
             "is_instavel": False,
+            "confiavel": True,
             "mensagem": "Serviço ativo sem alertas críticos",
             "metodo": "Downdetector (Relatos de Usuários)"
         }
@@ -312,6 +334,7 @@ class BankStatusChecker:
             "is_instavel": res["is_instavel"],
             "mensagem": res["mensagem"],
             "metodo": res.get("metodo", "Teste de Conectividade"),
+            "confiavel": res.get("confiavel", True),
             "timestamp": datetime.now(FUSO_BRASILIA).strftime("%d/%m/%Y às %H:%M:%S")
         }
 

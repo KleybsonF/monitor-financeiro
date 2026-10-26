@@ -18,3 +18,8 @@ ENV/
 # IDEs
 .vscode/
 .idea/
+
+# Caches e arquivos temporários locais
+*.json_cache
+*cache*.json
+estado_*.json

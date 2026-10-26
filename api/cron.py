@@ -80,7 +80,13 @@ async def run_cron(debug: bool = False):
     for item in resultados:
         bank_id = item["id"]
         esta_instavel = item["is_instavel"]
+        confiavel = item.get("confiavel", True)
         era_instavel = estado_anterior.get(bank_id, False)
+
+        # Se a consulta não foi 100% confiável (ex: Downdetector inacessível ou 429), preserva o estado anterior
+        if not confiavel and era_instavel:
+            novo_estado[bank_id] = True
+            continue
 
         novo_estado[bank_id] = esta_instavel
 
@@ -89,9 +95,11 @@ async def run_cron(debug: bool = False):
             alertas_disparados += 1
             detalhes_envio.append({"banco": bank_id, "tipo": "instabilidade", "discord_ok": ok})
         elif not esta_instavel and era_instavel:
-            ok = send_discord_alert(item, is_normalizacao=True)
-            alertas_disparados += 1
-            detalhes_envio.append({"banco": bank_id, "tipo": "normalizacao", "discord_ok": ok})
+            # Só notifica normalização se for confiável e status for normal
+            if confiavel and item.get("status") == "normal":
+                ok = send_discord_alert(item, is_normalizacao=True)
+                alertas_disparados += 1
+                detalhes_envio.append({"banco": bank_id, "tipo": "normalizacao", "discord_ok": ok})
 
     salvar_estado_atual(novo_estado)
 
