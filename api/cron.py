@@ -47,6 +47,22 @@ def salvar_cache(resultados):
     except Exception:
         pass
 
+@app.api_route("/debug-dd", methods=["GET"])
+async def debug_dd():
+    from curl_cffi.requests import AsyncSession
+    from checker import BROWSER_HEADERS
+    info = {}
+    try:
+        async with AsyncSession(impersonate="chrome120") as s:
+            r = await s.get("https://downdetector.com.br", headers=BROWSER_HEADERS, timeout=10)
+            info["status_code"] = r.status_code
+            info["content_length"] = len(r.text)
+            info["has_top_companies"] = "topCompanies" in r.text or "banco-do-brasil" in r.text
+            info["title"] = r.text[:200]
+    except Exception as e:
+        info["error"] = str(e)
+    return info
+
 @app.api_route("/", methods=["GET", "POST"])
 @app.api_route("/cron", methods=["GET", "POST"])
 @app.api_route("/api/cron", methods=["GET", "POST"])
