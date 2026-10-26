@@ -75,7 +75,6 @@ async def run_cron(debug: bool = False):
     detalhes_envio = []
 
     resultados = await checker.check_all()
-    salvar_cache(resultados)
 
     for item in resultados:
         bank_id = item["id"]
@@ -83,8 +82,12 @@ async def run_cron(debug: bool = False):
         confiavel = item.get("confiavel", True)
         era_instavel = estado_anterior.get(bank_id, False)
 
-        # Se a consulta não foi 100% confiável (ex: Downdetector inacessível ou 429), preserva o estado anterior
+        # Se o banco já estava instável e a consulta atual não pôde confirmar a normalização (ex: Downdetector rate-limit 429),
+        # preserva o alerta de instabilidade ativo tanto no monitor quanto no dashboard!
         if not confiavel and era_instavel:
+            item["status"] = "instavel"
+            item["is_instavel"] = True
+            item["mensagem"] = "Instabilidade reportada por usuários no Downdetector (em monitoramento contínuo)"
             novo_estado[bank_id] = True
             continue
 
@@ -101,6 +104,7 @@ async def run_cron(debug: bool = False):
                 alertas_disparados += 1
                 detalhes_envio.append({"banco": bank_id, "tipo": "normalizacao", "discord_ok": ok})
 
+    salvar_cache(resultados)
     salvar_estado_atual(novo_estado)
 
     has_discord_token = bool(os.getenv("DISCORD_TOKEN"))
