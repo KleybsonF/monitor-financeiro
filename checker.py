@@ -127,31 +127,41 @@ class BankStatusChecker:
             }
 
     async def get_downdetector_live_feed(self, session: AsyncSession) -> dict:
-        now = asyncio.get_event_loop().time()
-        if hasattr(self, "_dd_feed_cache") and (now - getattr(self, "_dd_feed_time", 0)) < 90:
-            return self._dd_feed_cache
+        if not hasattr(self, "_dd_lock"):
+            self._dd_lock = asyncio.Lock()
 
-        feed = {}
-        try:
-            resp = await session.get("https://downdetector.com.br", headers=BROWSER_HEADERS, timeout=10)
-            if resp.status_code == 200:
-                clean = resp.text.replace(r'\"', '"')
-                pattern = r'"name":"([^"]+)".*?"slug":"([^"]+)".*?"status":"(success|warning|danger)".*?"sparkline":\[([^\]]+)\]'
-                matches = re.findall(pattern, clean)
-                for name, slug, status, spark in matches:
-                    counts = [int(x) for x in spark.split(",") if x.strip().isdigit()]
-                    latest = counts[-1] if counts else 0
-                    feed[slug] = {
-                        "name": name,
-                        "status": status,
-                        "latest_reports": latest,
-                    }
-                self._dd_feed_cache = feed
-                self._dd_feed_time = now
-        except Exception as e:
-            logger.warning(f"Erro ao buscar feed do Downdetector: {e}")
+        async with self._dd_lock:
+            now = asyncio.get_event_loop().time()
+            if hasattr(self, "_dd_feed_cache") and (now - getattr(self, "_dd_feed_time", 0)) < 120:
+                return self._dd_feed_cache
 
-        return feed
+            try:
+                resp = await session.get("https://downdetector.com.br", headers=BROWSER_HEADERS, timeout=10)
+                if resp.status_code == 200:
+                    clean = resp.text.replace(r'\"', '"')
+                    pattern = r'"name":"([^"]+)".*?"slug":"([^"]+)".*?"status":"(success|warning|danger)".*?"sparkline":\[([^\]]+)\]'
+                    matches = re.findall(pattern, clean)
+                    feed = {}
+                    for name, slug, status, spark in matches:
+                        counts = [int(x) for x in spark.split(",") if x.strip().isdigit()]
+                        latest = counts[-1] if counts else 0
+                        feed[slug] = {
+                            "name": name,
+                            "status": status,
+                            "latest_reports": latest,
+                        }
+                    if feed:
+                        self._dd_feed_cache = feed
+                        self._dd_feed_time = now
+                        return feed
+            except Exception as e:
+                logger.warning(f"Erro ao buscar feed do Downdetector: {e}")
+
+            # Se falhou nesta tentativa mas temos cache anterior com menos de 10 min, preserva para evitar falso positivo de normalização
+            if hasattr(self, "_dd_feed_cache") and (now - getattr(self, "_dd_feed_time", 0)) < 600:
+                return self._dd_feed_cache
+
+            return getattr(self, "_dd_feed_cache", {})
 
     async def check_downdetector_or_site(self, session: AsyncSession, slug: str, fallback_url: str = None):
         # 1. Checa feed em tempo real da página principal do Downdetector
@@ -161,15 +171,16 @@ class BankStatusChecker:
             status_dd = entry["status"]
             reports = entry["latest_reports"]
 
-            if status_dd in ["warning", "danger"]:
+            # Considera instável se o Downdetector marcar warning/danger OU se o volume de relatos estiver elevado (>= 15)
+            if status_dd in ["warning", "danger"] or reports >= 15:
                 return {
-                    "status": "instavel" if status_dd == "warning" else "offline",
+                    "status": "instavel" if status_dd != "danger" else "offline",
                     "is_instavel": True,
                     "mensagem": f"Pico de reclamações no Downdetector ({reports} queixas recentes - Alerta {status_dd.upper()})",
                     "metodo": "Downdetector (Relatos de Usuários)"
                 }
             elif status_dd == "success":
-                # Downdetector diz que está tudo bem. Se tiver fallback_url, confirma conectividade
+                # Downdetector diz que está tudo bem (verde e relatos baixos). Se tiver fallback_url, confirma conectividade
                 if fallback_url:
                     res_http = await self.check_http(session, fallback_url)
                     if res_http["is_instavel"]:
@@ -309,6 +320,9 @@ class BankStatusChecker:
         semaphore = asyncio.Semaphore(25)
 
         async with AsyncSession(impersonate="chrome120") as session:
+            # Pré-aquece o feed do Downdetector uma única vez antes de disparar as tarefas concorrentes
+            await self.get_downdetector_live_feed(session)
+
             async def sem_check(bank):
                 async with semaphore:
                     return await self.check_single_bank(session, bank)
