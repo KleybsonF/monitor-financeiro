@@ -2,6 +2,7 @@ import asyncio
 from datetime import datetime, timezone, timedelta
 import json
 import logging
+import re
 from bs4 import BeautifulSoup
 from curl_cffi.requests import AsyncSession
 
@@ -9,6 +10,19 @@ logger = logging.getLogger(__name__)
 
 # Fuso Horário Oficial de Brasília (UTC-3)
 FUSO_BRASILIA = timezone(timedelta(hours=-3))
+
+BROWSER_HEADERS = {
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+    "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+    "Sec-Ch-Ua": '"Not A(Brand";v="99", "Google Chrome";v="120", "Chromium";v="120"',
+    "Sec-Ch-Ua-Mobile": "?0",
+    "Sec-Ch-Ua-Platform": '"Windows"',
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-User": "?1",
+    "Upgrade-Insecure-Requests": "1",
+}
 
 class BankStatusChecker:
     def __init__(self, banks_file: str = "banks.json"):
@@ -112,42 +126,84 @@ class BankStatusChecker:
                 "metodo": "API Oficial de Status (Statuspage)"
             }
 
-    async def check_downdetector_or_site(self, session: AsyncSession, slug: str, fallback_url: str = None):
-        dd_url = f"https://downdetector.com.br/fora-do-ar/{slug}/"
-        # 1. Tenta checar o Downdetector
+    async def get_downdetector_live_feed(self, session: AsyncSession) -> dict:
+        now = asyncio.get_event_loop().time()
+        if hasattr(self, "_dd_feed_cache") and (now - getattr(self, "_dd_feed_time", 0)) < 90:
+            return self._dd_feed_cache
+
+        feed = {}
         try:
-            resp = await session.get(dd_url, timeout=8)
+            resp = await session.get("https://downdetector.com.br", headers=BROWSER_HEADERS, timeout=10)
+            if resp.status_code == 200:
+                clean = resp.text.replace(r'\"', '"')
+                pattern = r'"name":"([^"]+)".*?"slug":"([^"]+)".*?"status":"(success|warning|danger)".*?"sparkline":\[([^\]]+)\]'
+                matches = re.findall(pattern, clean)
+                for name, slug, status, spark in matches:
+                    counts = [int(x) for x in spark.split(",") if x.strip().isdigit()]
+                    latest = counts[-1] if counts else 0
+                    feed[slug] = {
+                        "name": name,
+                        "status": status,
+                        "latest_reports": latest,
+                    }
+                self._dd_feed_cache = feed
+                self._dd_feed_time = now
+        except Exception as e:
+            logger.warning(f"Erro ao buscar feed do Downdetector: {e}")
+
+        return feed
+
+    async def check_downdetector_or_site(self, session: AsyncSession, slug: str, fallback_url: str = None):
+        # 1. Checa feed em tempo real da página principal do Downdetector
+        feed = await self.get_downdetector_live_feed(session)
+        if slug in feed:
+            entry = feed[slug]
+            status_dd = entry["status"]
+            reports = entry["latest_reports"]
+
+            if status_dd in ["warning", "danger"]:
+                return {
+                    "status": "instavel" if status_dd == "warning" else "offline",
+                    "is_instavel": True,
+                    "mensagem": f"Pico de reclamações no Downdetector ({reports} queixas recentes - Alerta {status_dd.upper()})",
+                    "metodo": "Downdetector (Relatos de Usuários)"
+                }
+            elif status_dd == "success":
+                # Downdetector diz que está tudo bem. Se tiver fallback_url, confirma conectividade
+                if fallback_url:
+                    res_http = await self.check_http(session, fallback_url)
+                    if res_http["is_instavel"]:
+                        return res_http
+                return {
+                    "status": "normal",
+                    "is_instavel": False,
+                    "mensagem": f"Operação normal segundo relatos ({reports} queixas recentes no padrão)",
+                    "metodo": "Downdetector (Relatos de Usuários)"
+                }
+
+        # 2. Se a instituição não estiver no feed principal, consulta a página individual
+        dd_url = f"https://downdetector.com.br/fora-do-ar/{slug}/"
+        try:
+            resp = await session.get(dd_url, headers=BROWSER_HEADERS, timeout=8)
             if resp.status_code == 200:
                 soup = BeautifulSoup(resp.text, "html.parser")
                 banner = soup.find(id="company-status") or soup.find("div", class_="company-status")
                 text_content = banner.get_text(separator=" ", strip=True).lower() if banner else ""
 
                 if any(w in text_content for w in ["problemas", "fora do ar", "interrupção", "falha"]):
-                    if any(w in text_content for w in ["possíveis problemas", "pequenos problemas"]):
-                        return {
-                            "status": "instavel",
-                            "is_instavel": True,
-                            "mensagem": "Possíveis problemas reportados por usuários",
-                            "metodo": "Downdetector (Relatos de Usuários)"
-                        }
-                    elif "não indicam problemas" in text_content or "sem problemas" in text_content:
-                        return {
-                            "status": "normal",
-                            "is_instavel": False,
-                            "mensagem": "Operação normal segundo relatos",
-                            "metodo": "Downdetector (Relatos de Usuários)"
-                        }
+                    if "não indicam problemas" in text_content or "sem problemas" in text_content:
+                        pass
                     else:
                         return {
                             "status": "instavel",
                             "is_instavel": True,
-                            "mensagem": "Alto volume de queixas detectado",
+                            "mensagem": "Possíveis problemas reportados por usuários no Downdetector",
                             "metodo": "Downdetector (Relatos de Usuários)"
                         }
         except Exception:
             pass
 
-        # 2. Se o Downdetector não sinalizar ou estiver protegido, valida no servidor direto
+        # 3. Fallback de conectividade direta caso não haja alerta no Downdetector
         if fallback_url:
             res_http = await self.check_http(session, fallback_url)
             return res_http

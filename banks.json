@@ -4,7 +4,7 @@
     "name": "Banco do Brasil",
     "category": "Banco Tradicional",
     "type": "downdetector",
-    "target": "bancodobrasil",
+    "target": "banco-do-brasil",
     "fallback_url": "https://autoatendimento.bb.com.br"
   },
   {
@@ -12,7 +12,7 @@
     "name": "Caixa Econômica Federal",
     "category": "Banco Tradicional",
     "type": "downdetector",
-    "target": "caixa-economica-federal",
+    "target": "caixa",
     "fallback_url": "https://www.caixa.gov.br"
   },
   {
@@ -28,7 +28,7 @@
     "name": "Itaú",
     "category": "Banco Tradicional",
     "type": "downdetector",
-    "target": "itau",
+    "target": "banco-itau",
     "fallback_url": "https://www.itau.com.br"
   },
   {
