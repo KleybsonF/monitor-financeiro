@@ -66,7 +66,9 @@ async def debug_dd():
 @app.api_route("/", methods=["GET", "POST"])
 @app.api_route("/cron", methods=["GET", "POST"])
 @app.api_route("/api/cron", methods=["GET", "POST"])
-async def run_cron():
+async def run_cron(debug: bool = False):
+    if debug:
+        return await debug_dd()
     estado_anterior = carregar_estado_anterior()
     novo_estado = {}
     alertas_disparados = 0
